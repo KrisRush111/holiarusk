@@ -1,0 +1,133 @@
+<!DOCTYPE html> 
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
+    <title>Кликер с кристаллами</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden; /* Предотвращаем прокрутку */
+            user-select: none; /* Запрет на выделение текста */
+            -webkit-user-select: none; /* Запрет на выделение текста в Safari */
+            -moz-user-select: none; /* Запрет на выделение текста в Firefox */
+            -ms-user-select: none; /* Запрет на выделение текста в Internet Explorer */
+        }
+
+        body {
+            background: url('9.jpg') repeat; /* Делаем фон повторяющимся */
+            background-size: cover;
+            animation: moveBackground 20s linear infinite; /* Применяем анимацию к фону */
+        }
+
+        @keyframes moveBackground {
+            from { background-position: 0 0; }
+            to { background-position: 100% 100%; }
+        }
+
+        .overlay {
+            background: rgba(0, 0, 0, 0.6); /* затемнение фона */
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            text-align: center;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        #clicker {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 5px solid #fff;
+            color: #fff;
+            font-size: 4rem;
+            cursor: pointer;
+            outline: none;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+            box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.6);
+        }
+
+        #clicker:active {
+            transform: scale(0.95);
+        }
+
+        #clicker:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0px 0px 30px rgba(255, 255, 255, 0.8);
+        }
+
+        /* Кнопка "Домой" */
+        .home-button {
+            position: fixed;
+            bottom: 60px; /* Увеличьте это значение, чтобы переместить кнопку выше */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .home-button:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="container">
+            <h1> <span id="crystalCount">0</span></h1>
+            <button id="clicker" class="clicker-button">💎</button>
+        </div>
+    </div>
+
+    <!-- Кнопка "Домой" -->
+    <button class="home-button" onclick="goHome()">Домой</button>
+
+    <script>
+        let crystalCount = parseInt(localStorage.getItem('totalCrystals')) || 0; // Получаем общее количество кристаллов
+        const crystalDisplay = document.getElementById('crystalCount');
+        const clickerButton = document.getElementById('clicker');
+
+        // Обновляем отображение количества кристаллов
+        crystalDisplay.textContent = crystalCount;
+
+        // Функция для увеличения количества кристаллов при нажатии
+        clickerButton.addEventListener('click', () => {
+            crystalCount++; // Увеличиваем счетчик
+            crystalDisplay.textContent = crystalCount; // Обновляем текст на экране
+            localStorage.setItem('totalCrystals', crystalCount); // Сохраняем новое количество кристаллов
+        });
+
+        // Функция для возврата на предыдущую страницу
+        function goHome() {
+            history.back();
+        }
+    </script>
+</body>
+</html>
