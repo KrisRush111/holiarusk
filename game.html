@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiarus: Прыжковое приключение</title>
+    <style>
+         html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* Это предотвращает появление прокрутки */
+            user-select: none; /* Запрет на выделение текста */
+            -webkit-user-select: none; /* Запрет на выделение текста в Safari */
+            -moz-user-select: none; /* Запрет на выделение текста в Firefox */
+            -ms-user-select: none; /* Запрет на выделение текста в Internet Explorer */
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            background-image: url('img.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            color: #fff;
+            transition: background-image 1s ease-in-out; /* Плавная смена фона */
+        }
+
+        body.new-background {
+            background-image: url('9.jpg'); /* Новый фон */
+        }
+
+        .game-container {
+            margin-top: 0; /* Убираем отступ сверху */
+            text-align: center; /* Центрирование содержимого */
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            height: auto;
+            background: transparent;
+        }
+        #controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .touch-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .touch-button {
+            background-color: #444;
+            border: none;
+            color: white;
+            padding: 15px;
+            margin: 5px;
+            font-size: 18px;
+            border-radius: 5px;
+        }
+        #scoreboard {
+            text-align: center;
+            margin: 20px auto; /* Добавляем отступы сверху и снизу для счета */
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            width: fit-content;
+        }
+        h1 {
+            margin-top: 20px; /* Добавляем небольшой отступ сверху для заголовка */
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+        .shop-buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .shop-button {
+            margin: 0 10px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .shop-button:hover {
+            transform: scale(1.1);
+        }
+        #gameOverModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Чтобы модальное окно было поверх остальных элементов */
+}
+
+.modal-content {
+    background-color: #000000;
+    color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+#restartButton {
+    background-color: rgb(255, 111, 0);
+    color: rgb(0, 0, 0);
+    border: none;
+    padding: 10px 20px;
+    font-size: 18px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Holiarus: Прыжковое приключение</h1>
+        <div id="scoreboard">Собрано кристаллов: 0</div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <div id="gameOverModal" style="display: none;">
+            <div class="modal-content">
+                <h2>Игра окончена!</h2>
+                <p>Вы упали с платформы.</p>
+                <p>Собрано кристаллов: <span id="finalScore">0</span></p>
+                <button id="restartButton">Начать заново</button>
+            </div>
+        </div>
+
+        <div class="touch-controls">
+            <button class="touch-button" id="leftButton">Влево</button>
+            <button class="touch-button" id="jumpButton">Прыжок</button>
+            <button class="touch-button" id="rightButton">Вправо</button>
+        </div>
+
+        <!-- Кнопки с изображениями -->
+        <div class="shop-buttons">
+            <a href="shop.html">
+                <img src="t.png" class="shop-button" width="55px" height="53px">
+            </a>
+            <a href="kliker.html">
+                <img src="3.png" class="shop-button" width="45px" height="45px">
+            </a>
+            <a href="index.html">
+                <img src="m.png" class="shop-button" width="45px" height="45px">
+            </a>
+        </div>
+    </div>
+
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const gravity = 0.5;
+const jumpForce = -10;
+let platformCount = 0;
+let platformGoal = 20; // Цель по количеству платформ
+let crystalScore = 0;
+let gameOver = false;
+let level = 1;
+const platformVerticalGap = 80;
+const minHorizontalGap = 50;
+const maxHorizontalGap = 200;
+const maxPlatforms = 10;  // Ограничение на количество платформ на экране
+let crystalGenerationRate = 0.3;
+
+const player = {
+    x: canvas.width / 2 - 25,
+    y: canvas.height - 60,
+    width: 50,
+    height: 50,
+    speedX: 0,
+    speedY: 0,
+    onGround: false,
+    color: '#00f'
+};
+
+let platformColor = '#808080'; // Исходный цвет платформ
+let platforms = [
+    { x: 150, y: canvas.height - 50, width: 100, height: 20, hasCrystal: false },
+    { x: 300, y: canvas.height - 150, width: 100, height: 20, hasCrystal: false },
+    { x: 500, y: canvas.height - 250, width: 100, height: 20, hasCrystal: false },
+    { x: 250, y: canvas.height - 350, width: 100, height: 20, hasCrystal: false },
+    { x: 400, y: canvas.height - 450, width: 100, height: 20, hasCrystal: false }
+];
+
+let crystals = [];
+const keys = { left: false, right: false, jump: false };
+
+// Добавляем изображение для кристаллов
+const crystalImage = new Image();
+crystalImage.src = '5.png'; // Путь к вашему изображению
+
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowLeft') keys.left = true;
+    if (e.code === 'ArrowRight') keys.right = true;
+    if (e.code === 'Space') keys.jump = true;
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowLeft') keys.left = false;
+    if (e.code === 'ArrowRight') keys.right = false;
+    if (e.code === 'Space') keys.jump = false;
+});
+
+document.getElementById('leftButton').addEventListener('touchstart', () => keys.left = true);
+document.getElementById('leftButton').addEventListener('touchend', () => keys.left = false);
+
+document.getElementById('rightButton').addEventListener('touchstart', () => keys.right = true);
+document.getElementById('rightButton').addEventListener('touchend', () => keys.right = false);
+
+document.getElementById('jumpButton').addEventListener('touchstart', () => keys.jump = true);
+document.getElementById('jumpButton').addEventListener('touchend', () => keys.jump = false);
+
+if (performance.navigation.type === 1) {
+        // Если страница была перезагружена, перенаправляем на index.html
+        window.location.href = 'index.html';
+    }
+
+function updateScore() {
+    document.getElementById('scoreboard').textContent = `Собрано кристаллов: ${crystalScore}`;
+}
+
+function createPlatform() {
+    const lastPlatform = platforms[platforms.length - 1];
+    const platformWidth = Math.max(100 - level * 5, 50);
+    const platformX = Math.random() * (canvas.width - platformWidth);
+    const platformY = lastPlatform ? lastPlatform.y - platformVerticalGap : canvas.height - 50;
+
+    if (lastPlatform) {
+        const horizontalGap = Math.abs(platformX - lastPlatform.x);
+        if (horizontalGap < minHorizontalGap || horizontalGap > maxHorizontalGap) {
+            return createPlatform(); // Пересоздание платформы, если условия не выполнены
+        }
+    }
+
+    // Платформы добавляются в список, пока не упадут за пределы экрана
+    platforms.push({ x: platformX, y: platformY, width: platformWidth, height: 20, hasCrystal: false });
+}
+
+function createCrystal() {
+    const availablePlatforms = platforms.filter(platform => !platform.hasCrystal);
+    if (availablePlatforms.length === 0) return;
+
+    const platform = availablePlatforms[Math.floor(Math.random() * availablePlatforms.length)];
+    const crystalX = platform.x + Math.random() * (platform.width - 40);
+    const crystalY = platform.y - 40;
+
+    crystals.push({ x: crystalX, y: crystalY, width: 40, height: 40, collected: false });
+    platform.hasCrystal = true;
+}
+
+// В конце вашего скрипта, добавьте обработчик события для кнопки "Начать заново"
+document.getElementById('restartButton').addEventListener('click', () => {
+document.getElementById('gameOverModal').style.display = 'flex'; // Показываем модальное окно
+document.getElementById('finalScore').textContent = crystalScore; // Обновляем количество кристаллов в модальном окне
+    // Сбрасываем все значения игры
+    gameOver = false;
+    player.x = canvas.width / 2 - 25;
+    player.y = canvas.height - 60;
+    player.speedX = 0;
+    player.speedY = 0;
+
+    crystals = [];
+    crystalScore = 0;
+    platformCount = 0;
+    level = 1;
+    platformColor = '#808080'; // Сброс цвета платформ
+    crystalGenerationRate = 0.3; // Сброс генерации кристаллов
+
+    document.body.classList.remove('new-background'); // Убираем изменение фона
+    updateScore(); // Обновляем счет
+    
+    platforms = [
+        { x: 150, y: canvas.height - 50, width: 100, height: 20, hasCrystal: false },
+        { x: 300, y: canvas.height - 150, width: 100, height: 20, hasCrystal: false },
+        { x: 500, y: canvas.height - 250, width: 100, height: 20, hasCrystal: false },
+        { x: 250, y: canvas.height - 350, width: 100, height: 20, hasCrystal: false },
+        { x: 400, y: canvas.height - 450, width: 100, height: 20, hasCrystal: false }
+    ];
+    crystals = [];
+    crystalScore = 0;
+    platformCount = 0;
+    gameOverModal.style.display = 'none'; // Скрываем модальное окно
+    updateScore(); // Обновляем счет
+});
+
+// Измените функцию updatePlayer
+function updatePlayer() {
+    if (gameOver) return;
+
+    if (keys.left) player.speedX = -5;
+    if (keys.right) player.speedX = 5;
+    if (!keys.left && !keys.right) player.speedX = 0;
+
+    if (keys.jump && player.onGround) {
+        player.speedY = jumpForce;
+        player.onGround = false;
+    }
+
+    player.speedY += gravity;
+    player.x += player.speedX;
+    player.y += player.speedY;
+
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.width > canvas.width) {
+        player.x = canvas.width - player.width;
+    }
+    if (player.y + player.height > canvas.height) {
+        // Проверяем, достиг ли игрок хотя бы одной платформы
+        if (platformCount > 0) {
+            gameOver = true;
+            document.getElementById('gameOverModal').style.display = 'flex'; // Показываем модальное окно
+            document.getElementById('finalScore').textContent = crystalScore; // Обновляем количество кристаллов в модальном окне
+        }
+        player.y = canvas.height - player.height;
+        player.speedY = 0;
+        player.onGround = true;
+    }
+
+    platforms.forEach((platform, index) => {
+        if (player.x < platform.x + platform.width &&
+            player.x + player.width > platform.x &&
+            player.y + player.height < platform.y + platform.height &&
+            player.y + player.height > platform.y) {
+            player.speedY = 0;
+            player.y = platform.y - player.height;
+            player.onGround = true;
+        }
+
+        if (platform.y > canvas.height) {
+            platforms.splice(index, 1);
+            platformCount++;
+
+            // Проверяем, достиг ли игрок 20 платформ
+            if (platformCount === platformGoal) {
+                document.body.classList.add('new-background'); // Меняем фон
+                platformColor = '#8B0000'; // Меняем цвет платформ на бордово-красный
+            }
+        }
+    });
+
+    crystals.forEach((crystal, index) => {
+        if (!crystal.collected &&
+            player.x < crystal.x + crystal.width &&
+            player.x + player.width > crystal.x &&
+            player.y < crystal.y + crystal.height &&
+            player.y + player.height > crystal.y) {
+            crystal.collected = true;
+            crystalScore++;
+
+            // Обновляем локальное хранилище после сбора кристалла
+            let totalCrystals = parseInt(localStorage.getItem('totalCrystals') || '0');
+            totalCrystals += 1;
+            localStorage.setItem('totalCrystals', totalCrystals);
+
+            updateScore();
+        }
+    });
+
+
+    if (player.y < canvas.height / 2) {
+        platforms.forEach(platform => platform.y += 7);
+        crystals.forEach(crystal => crystal.y += 7);
+        player.y += 7;
+
+        if (Math.random() < 0.1) createPlatform();
+        if (Math.random() < crystalGenerationRate) createCrystal();
+    }
+
+    if (platformCount >= 15 * level) {
+        level++;
+        platformCount = 0;
+        crystalGenerationRate = Math.max(0.1, crystalGenerationRate - 0.05);
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    platforms.forEach(platform => {
+        ctx.fillStyle = platformColor; // Используем переменную цвета платформ
+
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            });
+
+            crystals.forEach(crystal => {
+                if (!crystal.collected) {
+                    // Рисуем изображение вместо квадрата
+                    ctx.drawImage(crystalImage, crystal.x, crystal.y, crystal.width, crystal.height);
+                }
+            });
+        }
+
+        function gameLoop() {
+            updatePlayer();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+
+</body>
+</html>
